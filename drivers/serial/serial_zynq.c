@@ -123,28 +123,32 @@ static int _uart_zynq_serial_putc(struct uart_zynq *regs, const char c)
 static int zynq_serial_setbrg(struct udevice *dev, int baudrate)
 {
 	struct zynq_uart_plat *plat = dev_get_plat(dev);
-	unsigned long clock;
+	unsigned long clock = 0;
 
 	int ret;
 	struct clk clk;
 
 	ret = clk_get_by_index(dev, 0, &clk);
-	if (ret < 0) {
-		dev_err(dev, "failed to get clock\n");
-		return ret;
-	}
+	if (!ret) {
+		clock = clk_get_rate(&clk);
+		if (IS_ERR_VALUE(clock)) {
+			dev_err(dev, "failed to get rate\n");
+			return clock;
+		}
+		debug("%s: CLK %ld\n", __func__, clock);
 
-	clock = clk_get_rate(&clk);
-	if (IS_ERR_VALUE(clock)) {
+		ret = clk_enable(&clk);
+		if (ret) {
+			dev_err(dev, "failed to enable clock\n");
+			return ret;
+		}
+
+	} else
+		clock = dev_read_u32_default(dev, "clock-frequency", 0x115200);
+
+	if (!clock) {
 		dev_err(dev, "failed to get rate\n");
-		return clock;
-	}
-	debug("%s: CLK %ld\n", __func__, clock);
-
-	ret = clk_enable(&clk);
-	if (ret) {
-		dev_err(dev, "failed to enable clock\n");
-		return ret;
+		return -EINVAL;
 	}
 
 	_uart_zynq_serial_setbrg(plat->regs, clock, baudrate);
