@@ -9,12 +9,15 @@
 #include <spl_load.h>
 #include <image.h>
 #include <fs.h>
+#include <part.h>
 #include <asm/cache.h>
 #include <asm/io.h>
 
 struct blk_dev {
 	const char *ifname;
 	const char *filename;
+	int devnum;
+	int partnum;
 	char dev_part_str[8];
 };
 
@@ -43,6 +46,29 @@ static ulong spl_fit_read(struct spl_load_info *load, ulong file_offset,
 	return actlen;
 }
 
+static int spl_blk_file_size(struct blk_dev *dev, const char *filename,
+			     loff_t *filesize)
+{
+	int ret;
+
+	snprintf(dev->dev_part_str, sizeof(dev->dev_part_str) - 1, "%x:%x",
+		 dev->devnum, dev->partnum);
+	debug("Loading file %s from %s %s\n", filename, dev->ifname,
+	      dev->dev_part_str);
+	ret = fs_set_blk_dev(dev->ifname, dev->dev_part_str, FS_TYPE_ANY);
+	if (ret) {
+		printf("spl: unable to set blk_dev %s %s. Err - %d\n",
+		       dev->ifname, dev->dev_part_str, ret);
+		return ret;
+	}
+
+	ret = fs_size(filename, filesize);
+	if (ret)
+		printf("spl: unable to get size, file: %s. Err - %d\n",
+		       filename, ret);
+	return ret;
+}
+
 int spl_blk_load_image(struct spl_image_info *spl_image,
 		       struct spl_boot_device *bootdev,
 		       enum uclass_id uclass_id, int devnum, int partnum)
@@ -52,7 +78,7 @@ int spl_blk_load_image(struct spl_image_info *spl_image,
 	loff_t filesize;
 	struct blk_dev dev;
 	struct spl_load_info load;
-	int ret;
+	int ret, part;
 
 	blk_desc = blk_get_devnum_by_uclass_id(uclass_id, devnum);
 	if (!blk_desc) {
@@ -64,22 +90,27 @@ int spl_blk_load_image(struct spl_image_info *spl_image,
 
 	dev.filename = filename;
 	dev.ifname = blk_get_uclass_name(uclass_id);
-	snprintf(dev.dev_part_str, sizeof(dev.dev_part_str) - 1, "%x:%x",
-		 devnum, partnum);
-	ret = fs_set_blk_dev(dev.ifname, dev.dev_part_str, FS_TYPE_ANY);
-	if (ret) {
-		printf("spl: unable to set blk_dev %s %s. Err - %d\n",
-		       dev.ifname, dev.dev_part_str, ret);
-		return ret;
+	dev.devnum = devnum;
+	/*
+	 * First try to boot from EFI System partition. In case of failure,
+	 * fall back to the configured partition.
+	 */
+	if (IS_ENABLED(CONFIG_SPL_ESP_BOOT)) {
+		part = part_get_esp(blk_desc);
+		if (part) {
+			dev.partnum = part;
+			ret = spl_blk_file_size(&dev, filename, &filesize);
+			if (!ret)
+				goto out;
+		}
 	}
 
-	ret = fs_size(filename, &filesize);
-	if (ret) {
-		printf("spl: unable to get file size: %s. Err - %d\n",
-		       filename, ret);
+	dev.partnum = partnum;
+	ret = spl_blk_file_size(&dev, filename, &filesize);
+	if (ret)
 		return ret;
-	}
 
+out:
 	spl_load_init(&load, spl_fit_read, &dev,
 		      IS_ENABLED(CONFIG_SPL_FS_FAT_DMA_ALIGN) ?
 		      ARCH_DMA_MINALIGN : 1);
