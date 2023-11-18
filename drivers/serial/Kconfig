@@ -968,6 +968,15 @@ config SEMIHOSTING_SERIAL
 	  semihosting. If you are not using a debugger, this driver will halt
 	  the boot.
 
+config SPL_SEMIHOSTING_SERIAL
+	bool "Semihosting UART support in SPL"
+	depends on SPL_SEMIHOSTING && !SERIAL_RX_BUFFER
+	imply SERIAL_PUTS
+	help
+	  This option enables serial UART using semihosting in u-boot SPL.
+	  Please refer to SEMIHOSTING_SERIAL for more information.
+
+
 config UNIPHIER_SERIAL
 	bool "Support for UniPhier on-chip UART"
 	depends on ARCH_UNIPHIER
