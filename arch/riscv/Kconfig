@@ -310,6 +310,10 @@ endmenu
 config RISCV_ISA_A
 	def_bool y
 
+config RISCV_ISA_ZICBOM
+	bool "Zicbom support"
+	depends on !SYS_DISABLE_DCACHE_OPS
+
 config DMA_ADDR_T_64BIT
 	bool
 	default y if 64BIT
