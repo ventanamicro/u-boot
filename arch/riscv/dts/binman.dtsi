@@ -31,7 +31,11 @@
 					description = "U-Boot";
 					type = "standalone";
 					os = "U-Boot";
-					arch = "riscv";
+#ifdef CONFIG_64BIT
+					arch = "rv64";
+#else
+					arch = "rv32";
+#endif
 					compression = "none";
 					load = /bits/ 64 <CONFIG_TEXT_BASE>;
 
@@ -44,7 +48,11 @@
 					description = "Linux";
 					type = "standalone";
 					os = "Linux";
-					arch = "riscv";
+#ifdef CONFIG_64BIT
+					arch = "rv64";
+#else
+					arch = "rv32";
+#endif
 					compression = "none";
 					load = /bits/ 64 <CONFIG_TEXT_BASE>;
 
@@ -71,7 +79,11 @@
 					description = "OpenSBI fw_dynamic Firmware";
 					type = "firmware";
 					os = "opensbi";
-					arch = "riscv";
+#ifdef CONFIG_64BIT
+					arch = "rv64";
+#else
+					arch = "rv32";
+#endif
 					compression = "none";
 					load = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
 					entry = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
