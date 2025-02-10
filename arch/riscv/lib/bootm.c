@@ -94,6 +94,12 @@ static void boot_jump_linux(struct bootm_headers *images, int flag)
 	announce_and_cleanup(fake);
 
 	if (!fake) {
+
+		if ((IH_ARCH_DEFAULT == IH_ARCH_RISCV64) &&
+		    (images->os.arch == IH_ARCH_RISCV)) {
+			printf("Booting 32 bit kernel on a 64 bit system is not supported\n");
+			hang();
+		}
 		if (CONFIG_IS_ENABLED(OF_LIBFDT) && images->ft_len) {
 #ifdef CONFIG_SMP
 			ret = smp_call_function(images->ep,
