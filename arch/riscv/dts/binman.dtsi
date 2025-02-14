@@ -5,6 +5,12 @@
 
 #include <config.h>
 
+#ifdef CONFIG_64BIT
+#define ARCH "riscv64"
+#else
+#define ARCH "riscv"
+
+#endif
 / {
 	binman: binman {
 		multiple-images;
@@ -31,11 +37,7 @@
 					description = "U-Boot";
 					type = "standalone";
 					os = "U-Boot";
-#ifdef CONFIG_64BIT
-					arch = "rv64";
-#else
-					arch = "rv32";
-#endif
+					arch = ARCH;
 					compression = "none";
 					load = /bits/ 64 <CONFIG_TEXT_BASE>;
 
@@ -48,11 +50,7 @@
 					description = "Linux";
 					type = "standalone";
 					os = "Linux";
-#ifdef CONFIG_64BIT
-					arch = "rv64";
-#else
-					arch = "rv32";
-#endif
+					arch = ARCH;
 					compression = "none";
 					load = /bits/ 64 <CONFIG_TEXT_BASE>;
 
@@ -65,7 +63,7 @@
 				tee {
 					description = "OP-TEE";
 					type = "tee";
-					arch = "riscv";
+					arch = ARCH;
 					compression = "none";
 					os = "tee";
 					load = /bits/ 64 <CONFIG_SPL_OPTEE_LOAD_ADDR>;
@@ -79,11 +77,7 @@
 					description = "OpenSBI fw_dynamic Firmware";
 					type = "firmware";
 					os = "opensbi";
-#ifdef CONFIG_64BIT
-					arch = "rv64";
-#else
-					arch = "rv32";
-#endif
+					arch = ARCH;
 					compression = "none";
 					load = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
 					entry = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
